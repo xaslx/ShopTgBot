@@ -7,3 +7,7 @@ class NewItem(StatesGroup):
     price: State = State()
     quantity: State = State()
     photo_id: State = State()
+
+
+class EditItemTitle(StatesGroup):
+    new_title: State = State()
