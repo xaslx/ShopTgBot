@@ -67,4 +67,7 @@ async def echo(message: Message, session: AsyncSession):
             reply_markup=inline_kb
         )
     except:
-        await message.answer(text='Товар не найден, или удален')
+        text: str = 'Товар не найден, или удален\n'
+        if message.from_user.id in ADMINS_ID:
+            text += 'Посмотреть команды для администраторов <b>/apanel</b>'
+        await message.answer(text=text)
