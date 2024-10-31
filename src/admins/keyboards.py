@@ -45,7 +45,8 @@ def admin_commands() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text='Сделать рассылку')],
             [KeyboardButton(text='Добавить новый товар')],
-            [KeyboardButton(text='Отменить действие')]
+            [KeyboardButton(text='Отменить действие')],
+            [KeyboardButton(text='Скачать историю заказов')]
         ],
         resize_keyboard=True
     )
