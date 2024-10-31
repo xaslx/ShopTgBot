@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.item import Item
 from src.repositories.item import ItemRepository
-
+from src.utils import get_item_into
 
 
 
@@ -23,17 +23,16 @@ async def edit_item(callback: CallbackQuery, state: FSMContext, item_type: str, 
 async def update_item(message: Message, state: FSMContext, session: AsyncSession, item_type: str, **values):
     data: dict = await state.get_data()
     await state.clear()
-    res: Item | None = await ItemRepository.update(session=session, article=int(data['article']), **values)
-    if res:
+    item: Item | None = await ItemRepository.update(session=session, article=int(data['article']), **values)
+    item_info: str = get_item_into(item=item)
+    if item:
         await message.answer(f'Вы успешно поменяли {item_type} для товара\nАртикул: <b>{data["article"]}</b>\nТовар теперь выглядит так:\n')
         await message.answer_photo(
-        photo=res.photo_id,
-        caption=
-        f'Артикул: <b>{res.article}</b>\n\n'
-        f'Название: <b>{res.title}</b>\n\n'
-        f'Описание: <b>{res.description}</b>\n\n'
-        f'Цена: <b>{res.price}</b>\n\n'
-        f'Количество: <b>{res.quantity}</b>',
+        photo=item.photo_id,
+        caption=item_info
     )
     else:
         await message.answer(f'Не удалось изменить {item_type}')
+
+
+
