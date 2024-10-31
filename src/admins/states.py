@@ -11,3 +11,11 @@ class NewItem(StatesGroup):
 
 class EditItemTitle(StatesGroup):
     new_title: State = State()
+
+
+class EditItemDescription(StatesGroup):
+    new_description: State = State()
+
+
+class EditItemPrice(StatesGroup):
+    new_price: State = State()
