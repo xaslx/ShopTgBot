@@ -32,3 +32,8 @@ class EditItemSizes(StatesGroup):
 
 class EditItemPhoto(StatesGroup):
     new_Photo: State = State()
+
+
+class NotifyForAllUsers(StatesGroup):
+    photo_id: State = State()
+    text: State = State()
