@@ -37,7 +37,7 @@ async def process_cancel_command_state_admin(message: Message, state: FSMContext
     await state.clear()
 
 
-@admin_handler.message(AdminProtect(), StateFilter(), Command('apanel'))
+@admin_handler.message(AdminProtect(), StateFilter(default_state), Command('apanel'))
 async def get_admin_commands(message: Message):
     await message.answer(
         text=
