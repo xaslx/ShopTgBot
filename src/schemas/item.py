@@ -8,4 +8,5 @@ class NewItemSchema(BaseModel):
     description: str
     price: float
     quantity: int
+    sizes: list[int]
     photo_id: str
