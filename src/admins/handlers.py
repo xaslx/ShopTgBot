@@ -6,7 +6,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
-from src.admins.states import NewItem
+from src.admins.states import NewItem, EditItemTitle
 from src.models.item import Item
 from src.repositories.item import ItemRepository
 from src.schemas.item import NewItemSchema
@@ -162,3 +162,36 @@ async def delete_item(callback: CallbackQuery):
     await callback.answer()
     await callback.message.delete()
     await callback.message.answer('Вы отменили удаление товара')
+
+
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:title'))
+async def edit_item_title(callback: CallbackQuery, state: FSMContext):
+    _, _, article = callback.data.split(':')
+    await state.update_data({'article': article})
+    await callback.answer()
+    await callback.message.delete()
+    await callback.message.answer(
+        text=
+        'Введите новое название\n'
+        'Или <b>/acancel</b> чтобы отменить'
+    )
+    await state.set_state(EditItemTitle.new_title)
+
+
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), F.text)
+async def new_item_title(message: Message, state: FSMContext, session: AsyncSession):
+    data: dict = await state.get_data()
+    await state.clear()
+    res: Item | None = await ItemRepository.update(session=session, article=int(data['article']), title=message.text)
+    if res:
+        await message.answer(f'Вы успешно поменяли название для товара:\nАртикул: <b>{data['article']}</b>')
+    else:
+        await message.answer('Не удалось изменить название')
+
+
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), ~F.text)
+async def new_item_title_warning(message: Message):
+    await message.answer(text='Название должно быть в виде текста')
