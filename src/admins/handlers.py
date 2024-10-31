@@ -90,15 +90,6 @@ async def add_photo_notify_for_all_users_warning(message: Message, state: FSMCon
 
 
 
-@admin_handler.message(AdminProtect(), StateFilter(default_state), Command('admin_panel'))
-async def admin_panel(message: Message):
-    await message.answer(
-        text=
-        f'<b>/add_item</b> - Добавить новый товар\n'
-        f'<b>/send_all</b> - Сделать рассылку для пользователей'
-    )
-
-
 @admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Добавить новый товар')
 async def add_new_item(message: Message, state: FSMContext):
     await message.answer(
