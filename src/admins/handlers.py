@@ -32,7 +32,7 @@ async def process_cancel_command_admin(message: Message):
 @admin_handler.message(AdminProtect(), Command(commands='acancel'), ~StateFilter(default_state))
 async def process_cancel_command_state_admin(message: Message, state: FSMContext):
     await message.answer(
-        text='Вы отменили добавление товара'
+        text='✅ Вы отменили добавление товара'
     )
     await state.clear()
 
@@ -67,7 +67,7 @@ async def add_title(message: Message, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.title), ~F.text)
 async def add_title_warning(message: Message):
-    await message.answer(text='Название должно быть в виде текста.')
+    await message.answer(text='❌ Название должно быть в виде текста.')
 
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.description), F.text)
@@ -83,7 +83,7 @@ async def add_description(message: Message, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.description), ~F.text)
 async def add_description_warning(message: Message):
-    await message.answer(text='Описание должно быть в виде текста.')
+    await message.answer(text='❌ Описание должно быть в виде текста.')
 
 
 
@@ -100,7 +100,7 @@ async def add_price(message: Message, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.price), ~F.text.regexp(DIGIT_FILTER))
 async def add_price_warning(message: Message):
-    await message.answer(text='Прайс должно быть в виде цифры.')
+    await message.answer(text='❌ Прайс должно быть в виде цифры.')
 
 
 
@@ -117,8 +117,7 @@ async def add_quantity(message: Message, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.quantity), ~F.text.regexp(DIGIT_FILTER))
 async def add_quantity_warning(message: Message):
-    await message.answer(text='Количество должно быть в виде цифры.')
-
+    await message.answer(text='❌ Количество должно быть в виде цифры.')
 
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.sizes), F.text.regexp(SIZES_FILTER))
@@ -135,7 +134,7 @@ async def add_quantity(message: Message, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.sizes), ~F.text.regexp(SIZES_FILTER))
 async def add_quantity_warning(message: Message):
-    await message.answer(text='Введите размеры, один или несколько\nПример 10 или 10,25,30')
+    await message.answer(text='❌ Введите размеры, один или несколько\nПример 10 или 10,25,30')
 
 
 
@@ -148,7 +147,7 @@ async def add_quantity(message: Message, state: FSMContext, session: AsyncSessio
     new_item: NewItemSchema = NewItemSchema(**data)
     item: Item = await ItemRepository.add(session=session, **new_item.model_dump())
     if item:
-        await message.answer(text=f'Товар успешно добавлен\n<b>Артикул: {item.article}</b>')
+        await message.answer(text=f'✅ Товар успешно добавлен\n<b>Артикул: {item.article}</b>')
         item_info: str = get_item_into(item=item)
         text: str =  (
             f'✅✅✅ В магазине появился новый товар\n'
@@ -157,7 +156,7 @@ async def add_quantity(message: Message, state: FSMContext, session: AsyncSessio
         all_users: list[User] = await get_all_users(session=session)
         asyncio.create_task(notify_user_new_item_edit_item(text=text, all_users=all_users, photo_id=item.photo_id))
     else:
-        await message.answer('Не удалось добавить новый товар')
+        await message.answer('❌ Не удалось добавить новый товар')
     await state.clear()
 
 
@@ -185,9 +184,9 @@ async def delete_item(callback: CallbackQuery, session: AsyncSession):
     res = await ItemRepository.delete(session=session, article=int(article))
     await callback.message.delete()
     if res:
-        await callback.message.answer(text='Товар успешно удален')
+        await callback.message.answer(text='✅ Товар успешно удален')
     else:
-        await callback.message.answer(text='Не удалось удалить товар')
+        await callback.message.answer(text='❌ Не удалось удалить товар')
 
 
 
@@ -195,7 +194,7 @@ async def delete_item(callback: CallbackQuery, session: AsyncSession):
 async def delete_item(callback: CallbackQuery):
     await callback.answer()
     await callback.message.delete()
-    await callback.message.answer('Вы отменили удаление товара')
+    await callback.message.answer('✅ Вы отменили удаление товара')
 
 
 
@@ -209,7 +208,7 @@ async def new_item_title(message: Message, state: FSMContext, session: AsyncSess
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), ~F.text)
 async def new_item_title_warning(message: Message):
-    await message.answer(text='Название должно быть в виде текста')
+    await message.answer(text='❌ Название должно быть в виде текста')
 
 
 
@@ -223,7 +222,7 @@ async def new_item_description(message: Message, state: FSMContext, session: Asy
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemDescription.new_description), ~F.text)
 async def new_item_description_warning(message: Message):
-    await message.answer(text='Описание должно быть в виде текста')
+    await message.answer(text='❌ Описание должно быть в виде текста')
 
 
 
@@ -240,7 +239,7 @@ async def new_item_price(message: Message, state: FSMContext, session: AsyncSess
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_price_warning(message: Message):
-    await message.answer(text='Прайс должен быть в виде цифр')
+    await message.answer(text='❌ Прайс должен быть в виде цифр')
 
 
 
@@ -258,7 +257,7 @@ async def new_item_quantity(message: Message, state: FSMContext, session: AsyncS
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_quantity_warning(message: Message):
-    await message.answer(text='Количество должен быть в виде цифр')
+    await message.answer(text='❌ Количество должен быть в виде цифр')
 
 
 
@@ -275,7 +274,7 @@ async def new_item_sizes(message: Message, state: FSMContext, session: AsyncSess
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemSizes.new_sizes), ~F.text.regexp(SIZES_FILTER))
 async def new_item_sizes_warning(message: Message):
-    await message.answer(text='Размеры должны быть в виде цифры, или несколько цифр через запятую')
+    await message.answer(text='❌ Размеры должны быть в виде цифры, или несколько цифр через запятую')
 
 
 
@@ -289,4 +288,4 @@ async def new_item_photo(message: Message, state: FSMContext, session: AsyncSess
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemPhoto.new_Photo), ~F.photo)
 async def new_item_photo_warning(message: Message):
-    await message.answer(text='Отправьте новое фото')
+    await message.answer(text='❌ Отправьте новое фото')
