@@ -6,6 +6,7 @@ class NewItem(StatesGroup):
     description: State = State()
     price: State = State()
     quantity: State = State()
+    sizes: State = State()
     photo_id: State = State()
 
 
@@ -23,6 +24,10 @@ class EditItemPrice(StatesGroup):
 
 class EditItemQuantity(StatesGroup):
     new_quantity: State = State()
+
+
+class EditItemSizes(StatesGroup):
+    new_sizes: State = State()
 
 
 class EditItemPhoto(StatesGroup):
