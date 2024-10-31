@@ -14,6 +14,7 @@ def get_admin_inline_kb(article: int) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text='Редактировать описание', callback_data=f'edit:description:{article}')],
             [InlineKeyboardButton(text='Редактировать цену', callback_data=f'edit:price:{article}')],
             [InlineKeyboardButton(text='Редактировать количество', callback_data=f'edit:quantity:{article}')],
+            [InlineKeyboardButton(text='Изменить размеры', callback_data=f'edit:sizes:{article}')],
             [InlineKeyboardButton(text='Изменить фото', callback_data=f'edit:photo:{article}')]
         ]
     )
