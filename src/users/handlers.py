@@ -3,14 +3,14 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.item import Item
 from src.models.user import User
 from src.repositories.item import ItemRepository
 from src.repositories.user import UserRepository
 from src.users.keyboards import get_user_inline_kb
-from src.admins.keyboards import get_admin_inline_kb
+from src.admins.keyboards import get_admin_inline_kb, admin_commands
 from config import env_config
 from src.utils import get_item_into
 
@@ -38,7 +38,10 @@ async def process_cancel_command_state(message: Message, state: FSMContext):
 @user_handler.message(StateFilter(default_state), CommandStart())
 async def start_cmd(message: Message, session: AsyncSession):
     user: User = await UserRepository.find_one_or_none(session=session, user_telegram_id=message.from_user.id)
-    await message.answer('<b>Введите артикул</b>')
+    kb: ReplyKeyboardMarkup | None = None
+    if message.from_user.id in ADMINS_ID:
+        kb = admin_commands()
+    await message.answer('<b>Введите артикул</b>', reply_markup=kb)
     if not user:
         await UserRepository.add(session=session, user_telegram_id=message.from_user.id)
     
