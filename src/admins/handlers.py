@@ -24,12 +24,12 @@ SIZES_FILTER = r'^[0-9]+(,[0-9]+)*$'
 
 
 
-@admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Отменить действие')
+@admin_handler.message(AdminProtect(), StateFilter(default_state), (F.text == 'Отменить действие') | (F.text == '/acancel'))
 async def process_cancel_command_admin(message: Message):
     await message.answer(text='Отменять нечего, вы не добавляете товар\n\n')
 
 
-@admin_handler.message(AdminProtect(), ~StateFilter(default_state), F.text == 'Отменить действие')
+@admin_handler.message(AdminProtect(), ~StateFilter(default_state), (F.text == 'Отменить действие') | (F.text == '/acancel'))
 async def process_cancel_command_state_admin(message: Message, state: FSMContext):
     await message.answer(
         text='✅ Вы отменили добавление товара'
@@ -37,8 +37,17 @@ async def process_cancel_command_state_admin(message: Message, state: FSMContext
     await state.clear()
 
 
+@admin_handler.message(AdminProtect(), StateFilter(), Command('apanel'))
+async def get_admin_commands(message: Message):
+    await message.answer(
+        text=
+        f'<b>/send_all</b> - Сделать рассылку\n'
+        f'<b>/add_item</b> - Добавить новый товар\n'
+        f'<b>/acancel</b> - Отменить действие'
+    )
 
-@admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Сделать рассылку')
+
+@admin_handler.message(AdminProtect(), StateFilter(default_state), (F.text == 'Сделать рассылку') | (F.text == '/send_all'))
 async def send_notify_for_all_users(message: Message, state: FSMContext):
     await message.answer(
         text=
@@ -90,7 +99,7 @@ async def add_photo_notify_for_all_users_warning(message: Message, state: FSMCon
 
 
 
-@admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Добавить новый товар')
+@admin_handler.message(AdminProtect(), StateFilter(default_state), (F.text == 'Добавить новый товар') | (F.text == '/add_item'))
 async def add_new_item(message: Message, state: FSMContext):
     await message.answer(
         text=
