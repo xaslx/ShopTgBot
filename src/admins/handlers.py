@@ -6,7 +6,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
-from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity, EditItemPhoto, EditItemSizes
+from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity, EditItemPhoto, EditItemSizes, NotifyForAllUsers
 from src.models.item import Item
 from src.models.user import User
 from src.repositories.item import ItemRepository
@@ -24,12 +24,12 @@ SIZES_FILTER = r'^[0-9]+(,[0-9]+)*$'
 
 
 
-@admin_handler.message(AdminProtect(), Command(commands='acancel'), StateFilter(default_state))
+@admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Отменить действие')
 async def process_cancel_command_admin(message: Message):
     await message.answer(text='Отменять нечего, вы не добавляете товар\n\n')
 
 
-@admin_handler.message(AdminProtect(), Command(commands='acancel'), ~StateFilter(default_state))
+@admin_handler.message(AdminProtect(), ~StateFilter(default_state), F.text == 'Отменить действие')
 async def process_cancel_command_state_admin(message: Message, state: FSMContext):
     await message.answer(
         text='✅ Вы отменили добавление товара'
@@ -37,14 +37,69 @@ async def process_cancel_command_state_admin(message: Message, state: FSMContext
     await state.clear()
 
 
+
+@admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Сделать рассылку')
+async def send_notify_for_all_users(message: Message, state: FSMContext):
+    await message.answer(
+        text=
+        'Введите текст рассылки\n'
+        f'{CANCEL_ADD_ITEM}'
+    )
+    await state.set_state(NotifyForAllUsers.text)
+
+
+@admin_handler.message(AdminProtect(), StateFilter(NotifyForAllUsers.text), F.text)
+async def add_text_notify_for_all_users(message: Message, state: FSMContext):
+    await state.update_data({'text': message.text})
+    await message.answer(
+        text=
+        'Теперь отправьте фото если нужно\n'
+        f'Или команду <b>/done</b> - Чтобы отправить рассылку без фото'
+
+    )
+    await state.set_state(NotifyForAllUsers.photo_id)
+
+
+@admin_handler.message(AdminProtect(), StateFilter(NotifyForAllUsers.text), ~F.text)
+async def add_text_notify_for_all_users_warning(message: Message):
+    await message.answer(text='Отправьте текст для рассылки')
+
+
+
+@admin_handler.message(AdminProtect(), StateFilter(NotifyForAllUsers.photo_id), F.photo)
+async def add_text_notify_for_all_users(message: Message, state: FSMContext, session: AsyncSession):
+    await state.update_data({'photo_id': message.photo[-1].file_id})
+    data: dict = await state.get_data()
+    all_users: list[User] = await get_all_users(session=session)
+    asyncio.create_task(notify_user_new_item_edit_item(text=data.get('text'), all_users=all_users, photo_id=data.get('photo_id')))
+    await state.clear()
+
+
+@admin_handler.message(AdminProtect(), StateFilter(NotifyForAllUsers.photo_id), ~F.photo)
+async def add_photo_notify_for_all_users_warning(message: Message, state: FSMContext, session: AsyncSession):
+    data: dict = await state.get_data()
+    if message.text == '/done':
+        all_users: list[User] = await get_all_users(session=session)
+        asyncio.create_task(notify_user_new_item_edit_item(text=data.get('text'), all_users=all_users))
+        await state.clear()
+    else:
+        await message.answer(
+            text=
+            'Отправьте фото или команду <b>/done</b> - Чтобы отправить рассылку без фото'
+        )
+
+
+
 @admin_handler.message(AdminProtect(), StateFilter(default_state), Command('admin_panel'))
 async def admin_panel(message: Message):
     await message.answer(
-        text=f'<b>/add_item</b> - Добавить новый товар\n'
+        text=
+        f'<b>/add_item</b> - Добавить новый товар\n'
+        f'<b>/send_all</b> - Сделать рассылку для пользователей'
     )
 
 
-@admin_handler.message(AdminProtect(), StateFilter(default_state), Command('add_item'))
+@admin_handler.message(AdminProtect(), StateFilter(default_state), F.text == 'Добавить новый товар')
 async def add_new_item(message: Message, state: FSMContext):
     await message.answer(
         text=
@@ -271,7 +326,6 @@ async def new_item_sizes(message: Message, state: FSMContext, session: AsyncSess
     new_sizes: list[int] = add_sizes(text=message.text)
     await update_item(message, state, session, 'размеры', sizes=new_sizes)
   
-
 @admin_handler.message(AdminProtect(), StateFilter(EditItemSizes.new_sizes), ~F.text.regexp(SIZES_FILTER))
 async def new_item_sizes_warning(message: Message):
     await message.answer(text='❌ Размеры должны быть в виде цифры, или несколько цифр через запятую')
