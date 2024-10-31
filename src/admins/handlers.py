@@ -6,7 +6,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
-from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice
+from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity
 from src.models.item import Item
 from src.repositories.item import ItemRepository
 from src.schemas.item import NewItemSchema
@@ -177,14 +177,24 @@ async def edit_item(callback: CallbackQuery, state: FSMContext, item_type: str, 
     await state.set_state(state_type)
 
 
-async def update_item(message: Message, state: FSMContext, session: AsyncSession, item_type: str):
+async def update_item(message: Message, state: FSMContext, session: AsyncSession, item_type: str, **values):
     data: dict = await state.get_data()
     await state.clear()
-    res: Item | None = await ItemRepository.update(session=session, article=int(data['article']), title=message.text)
+    res: Item | None = await ItemRepository.update(session=session, article=int(data['article']), **values)
     if res:
-        await message.answer(f'Вы успешно поменяли {item_type} для товара\nАртикул: <b>{data["article"]}</b>')
+        await message.answer(f'Вы успешно поменяли {item_type} для товара\nАртикул: <b>{data["article"]}</b>\nТовар теперь выглядит так:\n')
+        await message.answer_photo(
+        photo=res.photo_id,
+        caption=
+        f'Артикул: <b>{res.article}</b>\n\n'
+        f'Название: <b>{res.title}</b>\n\n'
+        f'Описание: <b>{res.description}</b>\n\n'
+        f'Цена: <b>{res.price}</b>\n\n'
+        f'Количество: <b>{res.quantity}</b>',
+    )
     else:
         await message.answer(f'Не удалось изменить {item_type}')
+    
 
 
 
@@ -194,7 +204,7 @@ async def edit_item_title(callback: CallbackQuery, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), F.text)
 async def new_item_title(message: Message, state: FSMContext, session: AsyncSession):
-    await update_item(message, state, session, 'название')
+    await update_item(message, state, session, 'название', title=message.text)
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), ~F.text)
 async def new_item_title_warning(message: Message):
@@ -208,7 +218,7 @@ async def edit_item_description(callback: CallbackQuery, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemDescription.new_description), F.text)
 async def new_item_description(message: Message, state: FSMContext, session: AsyncSession):
-    await update_item(message, state, session, 'описание')
+    await update_item(message, state, session, 'описание', description=message.text)
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemDescription.new_description), ~F.text)
 async def new_item_description_warning(message: Message):
@@ -222,8 +232,23 @@ async def edit_item_price(callback: CallbackQuery, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), F.text.regexp(DIGIT_FILTER))
 async def new_item_price(message: Message, state: FSMContext, session: AsyncSession):
-    await update_item(message, state, session, 'прайс')
+    await update_item(message, state, session, 'прайс', price=float(message.text))
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_price_warning(message: Message):
     await message.answer(text='Прайс должен быть в виде цифр')
+
+
+
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:quantity'))
+async def edit_item_quantity(callback: CallbackQuery, state: FSMContext):
+    await edit_item(callback, state, 'количество', EditItemQuantity.new_quantity)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), F.text.regexp(DIGIT_FILTER))
+async def new_item_quantity(message: Message, state: FSMContext, session: AsyncSession):
+    await update_item(message, state, session, 'количество', quantity=int(message.text))
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), ~F.text.regexp(DIGIT_FILTER))
+async def new_item_quantity_warning(message: Message):
+    await message.answer(text='Количество должен быть в виде цифр')
