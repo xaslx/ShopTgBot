@@ -68,18 +68,12 @@ def add_sizes(text: str) -> list[int]:
     return sizes
 
 
-async def notify_user_new_item_edit_item(text: str, all_users: list[User], photo_id: str):
-    good: int = 0
-    bad: int = 0
-    for user in all_users:
-        try:
-            await bot.send_photo(chat_id=user.user_telegram_id, photo=photo_id, caption=text)
-            good += 1
-            await asyncio.sleep(0.5)
-        except:
-            bad += 1
-    
-    asyncio.create_task(send_message_for_admin(good=good, bad=bad))
+
+async def notify_user_new_item_edit_item(text: str, all_users: list[User], photo_id: str | None = None):
+    if photo_id:
+        await notify_user_with_photo(text=text, all_users=all_users, photo_id=photo_id)
+    else:
+        await notify_user_text(text=text, all_users=all_users)
 
 
     
@@ -100,3 +94,30 @@ async def send_message_for_admin(good: int, bad: int):
 async def get_all_users(session: AsyncSession) -> list[User]:
     all_users: list[User] = await UserRepository.find_all(session=session)
     return all_users
+
+
+async def notify_user_text(text: str, all_users: list[User]):
+    good: int = 0
+    bad: int = 0
+    for user in all_users:
+        try:
+            await bot.send_message(chat_id=user.user_telegram_id, text=text)
+            good += 1
+            await asyncio.sleep(0.5)
+        except:
+            bad += 1
+    asyncio.create_task(send_message_for_admin(good=good, bad=bad))
+
+
+
+async def notify_user_with_photo(text: str, all_users: list[User], photo_id: str):
+    good: int = 0
+    bad: int = 0
+    for user in all_users:
+        try:
+            await bot.send_photo(chat_id=user.user_telegram_id, photo=photo_id, caption=text)
+            good += 1
+            await asyncio.sleep(0.5)
+        except:
+            bad += 1
+    asyncio.create_task(send_message_for_admin(good=good, bad=bad))
