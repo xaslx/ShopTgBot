@@ -20,9 +20,8 @@ class SQLAlchemyRepository(AbstractRepository):
             await session.commit()
             return res.mappings().one_or_none()
         except (SQLAlchemyError, Exception) as e:
-            logger.error(
-                'Ошибка при добавлении записи в базу данных', extra={'данные': data, 'ошибка': e}
-            )
+            logger.error('Ошибка при добавлении записи в базу данных', extra={'данные': data, 'ошибка': e})
+            return None
 
 
     @classmethod
@@ -33,6 +32,7 @@ class SQLAlchemyRepository(AbstractRepository):
             return res.scalar_one_or_none()
         except (SQLAlchemyError, Exception) as e:
             logger.error(f'Ошибка при поиске значения в базе данных', extra={'ошибка': e})
+            return None
 
 
     @classmethod
@@ -43,13 +43,16 @@ class SQLAlchemyRepository(AbstractRepository):
             return res.scalars().all()
         except (SQLAlchemyError, Exception) as e:
             logger.error(f'Ошибка при поиске всех значений в базе данных', extra={'ошибка': e})
+            return None
             
 
     @classmethod
-    async def delete(self, session: AsyncSession, id: int) -> int:
+    async def delete(self, session: AsyncSession, article: int):
         try:
-            stmt = delete(self.model).filter_by(id=id).returning(self.model.id)
-            await session.execute(stmt)
+            stmt = delete(self.model).filter_by(article=article).returning(self.model)
+            res = await session.execute(stmt)
             await session.commit()
+            return res.scalar_one_or_none()
         except (SQLAlchemyError, Exception) as e:
             logger.error(f'Ошибка при удалении значения из базы данных', extra={'ошибка': e})
+            return None
