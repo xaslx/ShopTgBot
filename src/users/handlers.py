@@ -12,6 +12,9 @@ from src.repositories.user import UserRepository
 from src.users.keyboards import get_user_inline_kb
 from src.admins.keyboards import get_admin_inline_kb
 from config import env_config
+from src.utils import get_item_into
+
+
 
 
 user_handler: Router = Router(name='User Router')
@@ -50,18 +53,14 @@ async def echo(message: Message, session: AsyncSession):
     try:
         article: int = int(message.text)
         item: Item = await ItemRepository.find_one_or_none(session=session, article=article)
+        item_info: str = get_item_into(item=item)
         if message.from_user.id not in ADMINS_ID:
             inline_kb = get_user_inline_kb()
         else:
             inline_kb = get_admin_inline_kb(article=item.article)
         await message.answer_photo(
             photo=item.photo_id,
-            caption=
-            f'Артикул: <b>{item.article}</b>\n\n'
-            f'Название: <b>{item.title}</b>\n\n'
-            f'Описание: <b>{item.description}</b>\n\n'
-            f'Цена: <b>{item.price}</b>\n\n'
-            f'Количество: <b>{item.quantity}</b>',
+            caption=item_info,
             reply_markup=inline_kb
         )
     except:
