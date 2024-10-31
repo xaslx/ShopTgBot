@@ -8,10 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
 from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity, EditItemPhoto, EditItemSizes
 from src.models.item import Item
+from src.models.user import User
 from src.repositories.item import ItemRepository
 from src.schemas.item import NewItemSchema
 from src.admins.keyboards import confirm_delete_item
-from src.admins.utils import update_item, edit_item, add_sizes
+from src.admins.utils import update_item, edit_item, add_sizes, notify_user_new_item_edit_item, get_all_users
+import asyncio
+from src.utils import get_item_into
 
 
 admin_handler: Router = Router(name='Admin Router')
@@ -120,7 +123,7 @@ async def add_quantity_warning(message: Message):
 
 @admin_handler.message(AdminProtect(), StateFilter(NewItem.sizes), F.text.regexp(SIZES_FILTER))
 async def add_quantity(message: Message, state: FSMContext):
-    sizes: list[int]= add_sizes()
+    sizes: list[int]= add_sizes(message.text)
     await state.update_data({'sizes': sizes})
     await message.answer(
         text=
@@ -144,7 +147,17 @@ async def add_quantity(message: Message, state: FSMContext, session: AsyncSessio
     data: dict = await state.get_data()
     new_item: NewItemSchema = NewItemSchema(**data)
     item: Item = await ItemRepository.add(session=session, **new_item.model_dump())
-    await message.answer(text=f'Товар успешно добавлен\n<b>Артикул: {item.article}</b>')
+    if item:
+        await message.answer(text=f'Товар успешно добавлен\n<b>Артикул: {item.article}</b>')
+        item_info: str = get_item_into(item=item)
+        text: str =  (
+            f'✅✅✅ В магазине появился новый товар\n'
+            f'{item_info}'
+        )
+        all_users: list[User] = await get_all_users(session=session)
+        asyncio.create_task(notify_user_new_item_edit_item(text=text, all_users=all_users, photo_id=item.photo_id))
+    else:
+        await message.answer('Не удалось добавить новый товар')
     await state.clear()
 
 
