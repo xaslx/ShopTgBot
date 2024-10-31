@@ -6,7 +6,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
-from src.admins.states import NewItem, EditItemTitle
+from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice
 from src.models.item import Item
 from src.repositories.item import ItemRepository
 from src.schemas.item import NewItemSchema
@@ -165,33 +165,65 @@ async def delete_item(callback: CallbackQuery):
 
 
 
-@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:title'))
-async def edit_item_title(callback: CallbackQuery, state: FSMContext):
+async def edit_item(callback: CallbackQuery, state: FSMContext, item_type: str, state_type):
     _, _, article = callback.data.split(':')
     await state.update_data({'article': article})
     await callback.answer()
     await callback.message.delete()
     await callback.message.answer(
-        text=
-        'Введите новое название\n'
-        'Или <b>/acancel</b> чтобы отменить'
+        text=f'Введите новое {item_type} для товара\n'
+             'Или <b>/acancel</b> чтобы отменить'
     )
-    await state.set_state(EditItemTitle.new_title)
+    await state.set_state(state_type)
 
 
-
-@admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), F.text)
-async def new_item_title(message: Message, state: FSMContext, session: AsyncSession):
+async def update_item(message: Message, state: FSMContext, session: AsyncSession, item_type: str):
     data: dict = await state.get_data()
     await state.clear()
     res: Item | None = await ItemRepository.update(session=session, article=int(data['article']), title=message.text)
     if res:
-        await message.answer(f'Вы успешно поменяли название для товара:\nАртикул: <b>{data['article']}</b>')
+        await message.answer(f'Вы успешно поменяли {item_type} для товара\nАртикул: <b>{data["article"]}</b>')
     else:
-        await message.answer('Не удалось изменить название')
+        await message.answer(f'Не удалось изменить {item_type}')
 
 
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:title'))
+async def edit_item_title(callback: CallbackQuery, state: FSMContext):
+    await edit_item(callback, state, 'название', EditItemTitle.new_title)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), F.text)
+async def new_item_title(message: Message, state: FSMContext, session: AsyncSession):
+    await update_item(message, state, session, 'название')
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemTitle.new_title), ~F.text)
 async def new_item_title_warning(message: Message):
     await message.answer(text='Название должно быть в виде текста')
+
+
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:description'))
+async def edit_item_description(callback: CallbackQuery, state: FSMContext):
+    await edit_item(callback, state, 'описание', EditItemDescription.new_description)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemDescription.new_description), F.text)
+async def new_item_description(message: Message, state: FSMContext, session: AsyncSession):
+    await update_item(message, state, session, 'описание')
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemDescription.new_description), ~F.text)
+async def new_item_description_warning(message: Message):
+    await message.answer(text='Описание должно быть в виде текста')
+
+
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:price'))
+async def edit_item_price(callback: CallbackQuery, state: FSMContext):
+    await edit_item(callback, state, 'прайс', EditItemPrice.new_price)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), F.text.regexp(DIGIT_FILTER))
+async def new_item_price(message: Message, state: FSMContext, session: AsyncSession):
+    await update_item(message, state, session, 'прайс')
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), ~F.text.regexp(DIGIT_FILTER))
+async def new_item_price_warning(message: Message):
+    await message.answer(text='Прайс должен быть в виде цифр')
