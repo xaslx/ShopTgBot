@@ -6,7 +6,7 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
-from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity
+from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity, EditItemPhoto
 from src.models.item import Item
 from src.repositories.item import ItemRepository
 from src.schemas.item import NewItemSchema
@@ -252,3 +252,17 @@ async def new_item_quantity(message: Message, state: FSMContext, session: AsyncS
 @admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_quantity_warning(message: Message):
     await message.answer(text='Количество должен быть в виде цифр')
+
+
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:photo'))
+async def edit_item_photo(callback: CallbackQuery, state: FSMContext):
+    await edit_item(callback, state, 'фото', EditItemPhoto.new_Photo)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemPhoto.new_Photo), F.photo)
+async def new_item_photo(message: Message, state: FSMContext, session: AsyncSession):
+    await update_item(message, state, session, 'фото', photo_id=message.photo[-1].file_id)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemPhoto.new_Photo), ~F.photo)
+async def new_item_photo_warning(message: Message):
+    await message.answer(text='Отправьте новое фото')
