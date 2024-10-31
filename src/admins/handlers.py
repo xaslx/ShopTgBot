@@ -6,17 +6,19 @@ from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.admins.admin_filter import AdminProtect
-from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity, EditItemPhoto
+from src.admins.states import NewItem, EditItemTitle, EditItemDescription, EditItemPrice, EditItemQuantity, EditItemPhoto, EditItemSizes
 from src.models.item import Item
 from src.repositories.item import ItemRepository
 from src.schemas.item import NewItemSchema
 from src.admins.keyboards import confirm_delete_item
-from src.admins.utils import update_item, edit_item
+from src.admins.utils import update_item, edit_item, add_sizes
 
 
 admin_handler: Router = Router(name='Admin Router')
 CANCEL_ADD_ITEM: str = 'Или <b>/acancel</b> чтобы отменить добавление '
 DIGIT_FILTER = r'^(0|[1-9]\d*)(\.\d+)?$'
+SIZES_FILTER = r'^[0-9]+(,[0-9]+)*$'
+
 
 
 @admin_handler.message(AdminProtect(), Command(commands='acancel'), StateFilter(default_state))
@@ -104,15 +106,33 @@ async def add_quantity(message: Message, state: FSMContext):
     await state.update_data({'quantity': message.text})
     await message.answer(
         text=
+        'Теперь введите размеры через запятую\nПример: 10,25,30\n'
+        f'{CANCEL_ADD_ITEM}'
+    )
+    await state.set_state(NewItem.sizes)
+
+
+@admin_handler.message(AdminProtect(), StateFilter(NewItem.quantity), ~F.text.regexp(DIGIT_FILTER))
+async def add_quantity_warning(message: Message):
+    await message.answer(text='Количество должно быть в виде цифры.')
+
+
+
+@admin_handler.message(AdminProtect(), StateFilter(NewItem.sizes), F.text.regexp(SIZES_FILTER))
+async def add_quantity(message: Message, state: FSMContext):
+    sizes: list[int]= add_sizes()
+    await state.update_data({'sizes': sizes})
+    await message.answer(
+        text=
         'Теперь отправьте фото товара\n'
         f'{CANCEL_ADD_ITEM}'
     )
     await state.set_state(NewItem.photo_id)
 
 
-@admin_handler.message(AdminProtect(), StateFilter(NewItem.quantity), ~F.text.regexp(DIGIT_FILTER))
+@admin_handler.message(AdminProtect(), StateFilter(NewItem.sizes), ~F.text.regexp(SIZES_FILTER))
 async def add_quantity_warning(message: Message):
-    await message.answer(text='Количество должно быть в виде цифры.')
+    await message.answer(text='Введите размеры, один или несколько\nПример 10 или 10,25,30')
 
 
 
@@ -220,6 +240,22 @@ async def new_item_quantity(message: Message, state: FSMContext, session: AsyncS
 @admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_quantity_warning(message: Message):
     await message.answer(text='Количество должен быть в виде цифр')
+
+
+
+
+@admin_handler.callback_query(AdminProtect(), StateFilter(default_state), F.data.startswith('edit:sizes'))
+async def edit_item_sizes(callback: CallbackQuery, state: FSMContext):
+    await edit_item(callback, state, 'размеры', EditItemSizes.new_sizes)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemSizes.new_sizes), F.text.regexp(SIZES_FILTER))
+async def new_item_sizes(message: Message, state: FSMContext, session: AsyncSession):
+    new_sizes: list[int] = add_sizes(text=message.text)
+    await update_item(message, state, session, 'размеры', sizes=new_sizes)
+
+@admin_handler.message(AdminProtect(), StateFilter(EditItemSizes.new_sizes), ~F.text.regexp(SIZES_FILTER))
+async def new_item_sizes_warning(message: Message):
+    await message.answer(text='Размеры должны быть в виде цифры, или несколько цифр через запятую')
 
 
 
