@@ -1,6 +1,6 @@
 from src.repositories.base import AbstractRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert, delete, select
+from sqlalchemy import insert, delete, select, update
 from logger import logger
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -55,4 +55,17 @@ class SQLAlchemyRepository(AbstractRepository):
             return res.scalar_one_or_none()
         except (SQLAlchemyError, Exception) as e:
             logger.error(f'Ошибка при удалении значения из базы данных', extra={'ошибка': e})
+            return None
+        
+
+
+    @classmethod
+    async def update(self, session: AsyncSession, article: int, **data):
+        try:
+            stmt = update(self.model).filter_by(article=article).values(**data).returning(self.model)
+            res = await session.execute(stmt)
+            await session.commit()
+            return res.scalar_one_or_none()
+        except (SQLAlchemyError, Exception) as e:
+            logger.error(f'Ошибка при обновлении значения из базы данных', extra={'ошибка': e})
             return None
