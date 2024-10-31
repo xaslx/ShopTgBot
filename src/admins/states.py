@@ -19,3 +19,11 @@ class EditItemDescription(StatesGroup):
 
 class EditItemPrice(StatesGroup):
     new_price: State = State()
+
+
+class EditItemQuantity(StatesGroup):
+    new_quantity: State = State()
+
+
+class EditItemPhoto(StatesGroup):
+    new_Photo: State = State()
