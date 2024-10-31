@@ -220,7 +220,10 @@ async def edit_item_price(callback: CallbackQuery, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), F.text.regexp(DIGIT_FILTER))
 async def new_item_price(message: Message, state: FSMContext, session: AsyncSession):
-    await update_item(message, state, session, 'прайс', price=float(message.text))
+    data: dict = await state.get_data()
+    item: Item = await ItemRepository.find_one_or_none(session=session, article=int(data.get('article')))
+    text: str = f'Изменена цена для товара\nАртикул: {data.get('article')}\nСтарая цена: {item.price}\nНовая цена: {float(message.text)}'
+    await update_item(message, state, session, 'прайс', price=float(message.text), notify=True, text=text, photo_id=item.photo_id)
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemPrice.new_price), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_price_warning(message: Message):
@@ -235,7 +238,10 @@ async def edit_item_quantity(callback: CallbackQuery, state: FSMContext):
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), F.text.regexp(DIGIT_FILTER))
 async def new_item_quantity(message: Message, state: FSMContext, session: AsyncSession):
-    await update_item(message, state, session, 'количество', quantity=int(message.text))
+    data: dict = await state.get_data()
+    item: Item = await ItemRepository.find_one_or_none(session=session, article=int(data.get('article')))
+    text: str = f'Изменено количество для товара\nАртикул: {data.get('article')}\nСтарое: {item.quantity} шт\nНовое: {int(message.text)} шт'
+    await update_item(message, state, session, 'количество', quantity=int(message.text), notify=True, text=text, photo_id=item.photo_id)
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemQuantity.new_quantity), ~F.text.regexp(DIGIT_FILTER))
 async def new_item_quantity_warning(message: Message):
@@ -252,6 +258,7 @@ async def edit_item_sizes(callback: CallbackQuery, state: FSMContext):
 async def new_item_sizes(message: Message, state: FSMContext, session: AsyncSession):
     new_sizes: list[int] = add_sizes(text=message.text)
     await update_item(message, state, session, 'размеры', sizes=new_sizes)
+  
 
 @admin_handler.message(AdminProtect(), StateFilter(EditItemSizes.new_sizes), ~F.text.regexp(SIZES_FILTER))
 async def new_item_sizes_warning(message: Message):
