@@ -5,14 +5,19 @@ load_dotenv('.env')
 
 
 class Config:
+    LOG_LEVEL: str = os.getenv('LOG_LEVEL')
 
     TOKEN_BOT: str = os.getenv('TOKEN_BOT')
+    TOKEN_BOT_ERROR: str = os.getenv('TOKEN_BOT_ERROR')
 
-    DB_HOST: str
-    DB_PORT: int
-    DB_USER: str
-    DB_PASS: str
-    DB_NAME: str
+    DB_HOST: str = os.getenv('DB_HOST')
+    DB_PORT: int = os.getenv('DB_PORT')
+    DB_USER: str = os.getenv('DB_USER')
+    DB_PASS: str = os.getenv('DB_PASS')
+    DB_NAME: str = os.getenv('DB_NAME')
+
+    ADMINS_ID: list[int] = list(map(int, os.getenv('ADMINS_ID').split(',')))
+
 
     @property
     def DATABASE_URL(self):
